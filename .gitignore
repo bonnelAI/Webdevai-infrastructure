@@ -1,0 +1,36 @@
+# OpenSpec files (proposal and specification documents)
+openspec/
+
+# Qoder AI assistant files
+.qoder/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Secrets
+*.key
+*.pem
+secrets/
+
+# Railway token
+.railway/
+
+# Node modules (if frontend added)
+node_modules/
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

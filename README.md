@@ -35,7 +35,7 @@ graph TB
     subgraph "Core Cloning Logic"
         H[clone_to_staging.sh]
         I[Railway CLI]
-        J[pg_dump | psql]
+        J[Database Stream]
         K[Domain Assignment]
     end
     
@@ -60,7 +60,7 @@ graph TB
     K -->|Generate URL| O
     F -->|Return execution ID| G
     G -->|202 Accepted| C
-    C -->|Poll GET /executions/{id}| F
+    C -->|Poll GET /executions/id| F
     F -->|State: SUCCESS| C
     C -->|Display staging URL| A
     

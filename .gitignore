@@ -23,6 +23,7 @@ terraform/**/terraform.tfvars
 .env.local
 .env.*.local
 
+
 # IDE
 .vscode/
 .idea/
@@ -40,3 +41,6 @@ logs/
 
 # Kestra local storage
 kestra/storage/
+
+# md files to exclude
+QODER.md

@@ -191,21 +191,12 @@ copy-wordpress/
 - Docker installed
 - AWS account with appropriate permissions
 
-### Deploy Kestra to AWS
-
-```bash
-# Deploy full infrastructure
-./scripts/deploy_kestra_aws.sh
 
 # Access Kestra UI
 # http://kestra-alb-1006852712.us-east-1.elb.amazonaws.com/ui/
 ```
 
-### Destroy Infrastructure
 
-```bash
-./scripts/destroy_kestra_aws.sh
-```
 
 ## Development
 
@@ -226,9 +217,6 @@ This project uses [OpenSpec](https://github.com/cased/openspec) for change manag
 - 🔐 ECS tasks use IAM roles for AWS access
 - 🌐 ALB provides public HTTP access (no SSL yet)
 
-## License
-
-[Add your license here]
 
 ---
 

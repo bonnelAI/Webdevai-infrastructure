@@ -1,201 +1,295 @@
-# WordPress Staging Automation
+# WordPress Cloning Service
 
-> Fast PostgreSQL database synchronization and environment cloning system powered by Kestra
+> Dynamic WordPress site cloning with Kestra orchestration, EC2 Docker hosting, and Nginx reverse proxy
 
 ## Overview
 
-This system automates WordPress staging environment provisioning using Kestra workflow orchestration, PostgreSQL streaming replication, and infrastructure-as-code.
+This system clones ANY external WordPress site to isolated Docker containers with custom subdomains (client-X.toctoc.com.au), orchestrated via Kestra REST API workflows.
 
 ## Current Status
 
 ```mermaid
-graph LR
-    subgraph "✅ Deployed Infrastructure"
-        A[AWS ECS Fargate<br/>Kestra 1.1.13]
-        B[RDS PostgreSQL 16<br/>Database]
-        C[Application Load Balancer<br/>Public Access]
-        D[ECR Repository<br/>Docker Images]
+graph TB
+    subgraph "✅ Deployed - Kestra Orchestration"
+        K[Kestra on ECS Fargate<br/>kestra-alb-1006852712.us-east-1.elb.amazonaws.com]
+        KDB[(RDS PostgreSQL 16<br/>Kestra metadata)]
     end
     
-    subgraph "📋 Planned Features"
-        E[Database Sync<br/>pg_dump streaming]
-        F[Kestra Workflows<br/>Clone automation]
-        G[REST API<br/>Frontend integration]
-        H[Railway Integration<br/>Environment cloning]
+    subgraph "✅ Deployed - WordPress Cloning Infrastructure"
+        EC2[EC2 t3.small<br/>174.129.58.130<br/>Docker + Nginx]
+        WP1[WordPress Clone 1<br/>Dynamic container]
+        WP2[WordPress Clone 2<br/>Dynamic container]
+        WP3[WordPress Clone 3<br/>Dynamic container]
+        NGX[Nginx Reverse Proxy<br/>Subdomain routing]
     end
     
-    A --- B
-    C --- A
-    D --- A
+    subgraph "📋 Planned - Cloning Engine"
+        CS[Clone Scripts<br/>SSH/FTP/HTTP methods]
+        DB[Database Import<br/>wp search-replace]
+        KW[Kestra Workflows<br/>REST API endpoints]
+    end
     
-    A -.->|Next| E
-    E -.-> F
-    F -.-> G
-    G -.-> H
+    K -->|SSH Execute| EC2
+    EC2 -->|Runs| NGX
+    NGX -->|Routes| WP1
+    NGX -->|Routes| WP2
+    NGX -->|Routes| WP3
+    K --- KDB
     
-    style A fill:#4CAF50,color:#fff
-    style B fill:#4CAF50,color:#fff
-    style C fill:#4CAF50,color:#fff
-    style D fill:#4CAF50,color:#fff
-    style E fill:#E0E0E0,color:#666
-    style F fill:#E0E0E0,color:#666
-    style G fill:#E0E0E0,color:#666
-    style H fill:#E0E0E0,color:#666
+    K -.->|Next| KW
+    KW -.-> CS
+    CS -.-> DB
+    
+    style K fill:#4CAF50,color:#fff
+    style KDB fill:#4CAF50,color:#fff
+    style EC2 fill:#4CAF50,color:#fff
+    style NGX fill:#4CAF50,color:#fff
+    style WP1 fill:#4CAF50,color:#fff
+    style WP2 fill:#4CAF50,color:#fff
+    style WP3 fill:#4CAF50,color:#fff
+    style CS fill:#E0E0E0,color:#666
+    style DB fill:#E0E0E0,color:#666
+    style KW fill:#E0E0E0,color:#666
 ```
 
-### ✅ Phase 1: Infrastructure (Complete)
+### ✅ Phase 1: Kestra Orchestration (Complete)
 
 **Kestra Instance:**
 - 🌐 **URL:** http://kestra-alb-1006852712.us-east-1.elb.amazonaws.com/ui/
 - 🚀 **Platform:** AWS ECS Fargate (2GB memory, 0.5 vCPU)
-- 📦 **Plugins:** 912 plugins from 164 groups loaded
+- 📦 **Plugins:** 912 plugins loaded
 - 🗄️ **Database:** RDS PostgreSQL 16 (db.t3.micro, 20GB)
 - 🔒 **Authentication:** Disabled (development mode)
+- **Purpose:** Orchestrates WordPress cloning via REST API, triggers scripts on EC2 via SSH
 
 **Infrastructure Components:**
-- VPC with public/private subnets across 2 AZs
+- VPC with public/private subnets (shared with EC2)
 - Application Load Balancer for HTTP access
 - ECR repository for Docker images
 - CloudWatch Logs for monitoring
-- Secrets Manager for credentials
 
 **Deployment:**
-- Infrastructure: Terraform (local state)
-- Region: us-east-1
+- Infrastructure: Terraform (us-east-1)
 - Deployed: 2026-01-14
 
-### 📋 Phase 2: Database Sync (Planned)
+### ✅ Phase A: EC2 WordPress Hosting (Complete)
 
-**Fast PostgreSQL Streaming for WordPress:**
-- Sub-30-second WordPress database cloning using `pg_dump | psql`
-- Zero disk I/O (Unix pipe streaming)
-- Support for 1GB+ WordPress databases
-- Automatic rollback on failure
-- Preserve WordPress URLs and site-specific configurations
+**EC2 Instance:**
+- 🖥️ **IP:** 174.129.58.130
+- 💻 **Instance Type:** t3.small (2GB RAM, 2 vCPU)
+- 🐳 **Docker:** 25.0.14 + Docker Compose v2.24.5
+- 🌐 **Nginx:** 1.25.5 (reverse proxy for subdomain routing)
+- 🔧 **Tools:** WP-CLI 2.12.0, AWS CLI 2.32.34, PHP 8.4.16
+- **Purpose:** Hosts up to 3 WordPress clone containers with dynamic subdomain routing
 
-### 📋 Phase 3: Workflow Automation (Planned)
+**Container Architecture:**
+- Nginx proxy container (always running)
+- WordPress containers created on-demand during clone
+- Each clone gets: dedicated container + Docker volume + Nginx vhost + subdomain
+- Network: wordpress-cloning-network (bridge)
 
-**Kestra Workflows:**
-- Clone WordPress environments with custom client domains (e.g., client-x.toctoc.com.au)
-- Database synchronization between environments
-- Environment management (list, delete, restart)
-- Automated health checks and monitoring
+**Management Scripts:**
+- `create-wordpress-container.sh` - Create container + Nginx config
+- `delete-wordpress-container.sh` - Remove container + cleanup
+- `list-wordpress-containers.sh` - Show all clones
 
-### 📋 Phase 4: Frontend Integration (Planned)
+**Deployment:**
+- Infrastructure: Terraform (terraform/ec2/)
+- SSH Key: wordpress-cloning-key.pem
+- Deployed: 2026-01-14
 
-**REST API Access:**
-- Webhook-triggered cloning
-- Real-time execution polling
-- Status updates and error handling
-- Frontend dashboard integration
+### 📋 Phase B: WordPress Cloning Engine (In Progress)
+
+**Multi-Method Cloning:**
+- Method 1: SSH + wp-cli (fastest, ~2 min for 500MB)
+- Method 2: FTP/SFTP + mysqldump (common hosting)
+- Method 3: HTTP + WP REST API (fallback)
+- Method 4: Web scraping (last resort)
+- Automatic fallback if primary method fails
+
+**Database Handling:**
+- Export source WordPress database
+- Create new RDS PostgreSQL database per clone
+- Import and run wp search-replace for URL updates
+- Preserve plugins, themes, and media
+
+**Dynamic Provisioning:**
+- Generate unique subdomain (client-X.toctoc.com.au)
+- Create Docker container with fresh WordPress
+- Generate Nginx vhost configuration
+- Reload Nginx without downtime
+
+### 📋 Phase C: Kestra Workflow Integration (Planned)
+
+**REST API Endpoints (via Kestra):**
+- `POST /api/executions/wordpress.cloning/clone-create` - Clone WordPress site
+- `GET /api/executions/wordpress.cloning/clone-list` - List all clones
+- `DELETE /api/executions/wordpress.cloning/clone-delete` - Remove clone
+- `GET /api/executions/{id}` - Poll execution status
+
+**Workflow Logic:**
+1. Frontend calls Kestra REST API
+2. Kestra SSH to EC2 instance
+3. Execute clone scripts with parameters
+4. Monitor progress and capture output
+5. Return clone URL (https://client-X.toctoc.com.au)
 
 ## Architecture
 
 ```mermaid
 graph TB
-    subgraph "AWS Infrastructure"
-        ALB[Application Load Balancer<br/>Port 80]
-        ECS[ECS Fargate Task<br/>Kestra 1.1.13<br/>2GB Memory]
-        RDS[(RDS PostgreSQL 16<br/>db.t3.micro)]
-        ECR[ECR Repository<br/>Docker Images]
+    Frontend["Frontend Application<br/>(Imaginary)"] -->|POST /clone-wordpress| KAPI["Kestra REST API<br/>Port 8080"]
+    
+    subgraph "AWS - Kestra Orchestration Layer"
+        ALB["Application Load Balancer<br/>kestra-alb-*.elb.amazonaws.com"]
+        ECS["ECS Fargate<br/>Kestra 1.1.13<br/>2GB Memory"]
+        KRDS[("RDS PostgreSQL 16<br/>Kestra Metadata")]
+        ECR["ECR Repository<br/>Kestra Image"]
     end
     
-    subgraph "Future: Workflow Layer"
-        K1[Clone Workflow]
-        K2[Sync Workflow]
-        K3[Deploy Workflow]
+    subgraph "AWS - WordPress Cloning Infrastructure"
+        EC2["EC2 t3.small<br/>174.129.58.130<br/>Docker Host"]
+        NGINX["Nginx Proxy<br/>Subdomain Router"]
+        WP1["WordPress Container 1<br/>client-1.toctoc.com.au"]
+        WP2["WordPress Container 2<br/>client-2.toctoc.com.au"]
+        WP3["WordPress Container 3<br/>client-3.toctoc.com.au"]
+        WRDS[("RDS PostgreSQL<br/>Clone Databases")]
     end
     
-    subgraph "Future: Target Platforms"
-        W1[WordPress Production<br/>client-prod.toctoc.com.au]
-        W2[WordPress Clone<br/>client-x.toctoc.com.au]
+    subgraph "External WordPress Sites"
+        SRC1["Source Site 1<br/>example.com"]
+        SRC2["Source Site 2<br/>client-site.com"]
     end
     
-    Internet((Internet)) -->|HTTP| ALB
-    ALB -->|Port 8080| ECS
-    ECS -->|JDBC| RDS
-    ECR -.->|Pull Image| ECS
+    KAPI -->|HTTP| ALB
+    ALB --> ECS
+    ECS --> KRDS
+    ECR -.->|Pull| ECS
     
-    ECS -.->|Will Execute| K1
-    ECS -.->|Will Execute| K2
-    ECS -.->|Will Execute| K3
+    ECS -->|SSH Execute| EC2
+    EC2 -->|Runs| NGINX
+    NGINX -->|Routes| WP1
+    NGINX -->|Routes| WP2
+    NGINX -->|Routes| WP3
     
-    K1 -.->|Will Clone| W1
-    K1 -.->|Will Create| W2
-    K2 -.->|Will Sync DB| W1
-    K2 -.->|Will Sync DB| W2
+    WP1 --> WRDS
+    WP2 --> WRDS
+    WP3 --> WRDS
     
+    EC2 -.->|Clone From| SRC1
+    EC2 -.->|Clone From| SRC2
+    
+    style Frontend fill:#9C27B0,color:#fff
+    style KAPI fill:#9C27B0,color:#fff
     style ALB fill:#FF9800,color:#fff
     style ECS fill:#4CAF50,color:#fff
-    style RDS fill:#4CAF50,color:#fff
+    style KRDS fill:#4CAF50,color:#fff
     style ECR fill:#2196F3,color:#fff
-    style K1 fill:#E0E0E0,color:#666
-    style K2 fill:#E0E0E0,color:#666
-    style K3 fill:#E0E0E0,color:#666
-    style W1 fill:#E0E0E0,color:#666
-    style W2 fill:#E0E0E0,color:#666
+    style EC2 fill:#4CAF50,color:#fff
+    style NGINX fill:#4CAF50,color:#fff
+    style WP1 fill:#4CAF50,color:#fff
+    style WP2 fill:#4CAF50,color:#fff
+    style WP3 fill:#4CAF50,color:#fff
+    style WRDS fill:#4CAF50,color:#fff
+    style SRC1 fill:#E0E0E0,color:#666
+    style SRC2 fill:#E0E0E0,color:#666
 ```
 
 ## Tech Stack
 
-**Deployed:**
-- **Kestra** - Workflow orchestration platform
-- **PostgreSQL** - Database (RDS managed)
+**Orchestration Layer (Deployed):**
+- **Kestra 1.1.13** - Workflow orchestration, REST API exposure
+- **AWS ECS Fargate** - Serverless Kestra hosting
+- **AWS RDS PostgreSQL 16** - Kestra metadata storage
+- **AWS ALB** - Public HTTP access to Kestra
+- **AWS ECR** - Custom Kestra Docker image
 - **Terraform** - Infrastructure as code
-- **AWS ECS Fargate** - Serverless container platform
-- **Docker** - Container packaging
-- **AWS RDS** - Managed PostgreSQL
-- **AWS ALB** - Load balancing
-- **AWS ECR** - Container registry
 
-**Planned:**
-- **Bash** - WordPress cloning automation scripts
-- **DNS Management** - Custom domain routing (e.g., client-x.toctoc.com.au)
-- **pg_dump/psql** - Database replication between environments
-- **jq** - JSON parsing for configuration management
+**WordPress Hosting Layer (Deployed):**
+- **EC2 t3.small** - Docker host for WordPress clones
+- **Docker 25.0.14** - Container runtime
+- **Docker Compose v2.24.5** - Multi-container orchestration
+- **Nginx 1.25.5** - Reverse proxy for subdomain routing
+- **WordPress 6.4** - Official Docker image (pulled on-demand)
+- **WP-CLI 2.12.0** - WordPress command-line tool
+- **PHP 8.4.16** - Required by WP-CLI
+- **AWS CLI 2.32.34** - AWS service integration
+- **MariaDB 10.5** - MySQL client for database operations
+
+**Cloning Engine (In Progress):**
+- **Bash Scripts** - Clone orchestration logic
+- **wp search-replace** - URL replacement in databases
+- **SSH/FTP/HTTP** - Multi-method site access
+- **Dynamic Nginx config generation** - Automatic vhost creation
 
 ## Project Structure
 
 ```
 copy-wordpress/
-├── terraform/aws/          # ✅ AWS infrastructure (Terraform)
-│   ├── provider.tf         # AWS provider configuration
-│   ├── variables.tf        # Input variables
-│   ├── vpc.tf              # VPC and networking
-│   ├── security_groups.tf  # Security groups
-│   ├── iam.tf              # IAM roles
-│   ├── rds.tf              # PostgreSQL database
-│   ├── ecs.tf              # ECS cluster and tasks
-│   ├── alb.tf              # Application load balancer
-│   ├── ecr.tf              # Container registry
-│   ├── outputs.tf          # Infrastructure outputs
-│   └── terraform.tfvars    # Configuration values
-├── docker/                 # ✅ Docker configuration
-│   └── Dockerfile.kestra   # Custom Kestra image
-├── kestra/config/          # ✅ Kestra configuration
-│   └── application-aws.yaml # AWS-specific config
-├── scripts/                # ✅ Deployment scripts
-│   ├── deploy_kestra_aws.sh    # Full deployment
-│   └── destroy_kestra_aws.sh   # Infrastructure teardown
-├── openspec/               # 📋 Change proposals
+├── terraform/
+│   ├── aws/                    # ✅ Kestra infrastructure
+│   │   ├── vpc.tf, ecs.tf, alb.tf, rds.tf, etc.
+│   │   └── terraform.tfvars
+│   └── ec2/                    # ✅ WordPress hosting infrastructure
+│       ├── main.tf             # EC2, security groups, IAM
+│       ├── variables.tf, outputs.tf
+│       └── terraform.tfvars
+├── docker/
+│   └── Dockerfile.kestra       # ✅ Custom Kestra image
+├── kestra/
+│   ├── config/
+│   │   └── application-aws.yaml # ✅ Kestra configuration
+│   └── flows/                  # 📋 Workflow definitions (planned)
+├── docker-compose.yml          # ✅ Nginx proxy base config
+├── .env.example                # ✅ Environment variables template
+├── nginx/
+│   ├── nginx.conf              # ✅ Nginx base configuration
+│   └── conf.d/
+│       └── default.conf        # ✅ Catch-all vhost
+├── scripts/
+│   ├── deploy_kestra_aws.sh    # ✅ Kestra deployment
+│   ├── destroy_kestra_aws.sh   # ✅ Kestra teardown
+│   ├── setup-ec2.sh            # ✅ EC2 initial setup
+│   ├── create-wordpress-container.sh # ✅ Create clone
+│   ├── delete-wordpress-container.sh # ✅ Remove clone
+│   └── list-wordpress-containers.sh  # ✅ List clones
+├── openspec/
 │   └── changes/
-│       └── add-aws-kestra-deployment/  # ✅ Complete
-└── .gitignore
+│       ├── add-aws-kestra-deployment/     # ✅ Complete
+│       └── add-wordpress-cloning-service/ # 🔄 In Progress
+│           ├── proposal.md
+│           ├── design.md
+│           ├── tasks.md
+│           └── specs/
+└── wordpress-cloning-key.pem   # ✅ EC2 SSH key
 ```
 
 ## Quick Start
 
+### Access Deployed Infrastructure
+
+**Kestra UI:**
+```
+http://kestra-alb-1006852712.us-east-1.elb.amazonaws.com/ui/
+```
+
+**EC2 Instance (SSH):**
+```bash
+ssh -i wordpress-cloning-key.pem ec2-user@174.129.58.130
+```
+
+**Test Nginx:**
+```bash
+curl -I http://174.129.58.130
+# Should return: HTTP/1.1 404 (no clones yet)
+```
+
 ### Prerequisites
 
-- AWS CLI v2 configured
+- AWS CLI v2 configured with us-east-1 region
 - Terraform >= 1.14.3
 - Docker installed
-- AWS account with appropriate permissions
-
-
-# Access Kestra UI
-# http://kestra-alb-1006852712.us-east-1.elb.amazonaws.com/ui/
-```
+- SSH key: wordpress-cloning-key.pem
 
 
 
@@ -204,22 +298,45 @@ copy-wordpress/
 This project uses [OpenSpec](https://github.com/cased/openspec) for change management.
 
 **Completed Proposals:**
-- ✅ `add-aws-kestra-deployment` - AWS infrastructure with ECS Fargate and RDS
+- ✅ `add-aws-kestra-deployment` - Kestra on ECS Fargate with RDS PostgreSQL
+- 🔄 `add-wordpress-cloning-service` - Phase A complete (EC2 infrastructure)
 
-**Planned Proposals:**
-- 📋 Database sync with pg_dump streaming
-- 📋 Kestra workflow automation
-- 📋 REST API frontend integration
+**In Progress:**
+- 🔄 Phase B: WordPress cloning engine (multi-method clone scripts)
+- 📋 Phase C: Kestra workflow integration (REST API endpoints)
 
 ## Security Notes
 
-- ⚠️ Authentication currently disabled (development mode)
-- 🔒 RDS password stored in AWS Secrets Manager
-- 🔐 ECS tasks use IAM roles for AWS access
-- 🌐 ALB provides public HTTP access (no SSL yet)
+**Kestra:**
+- ⚠️ Authentication disabled (development mode)
+- 🔒 RDS password in AWS Secrets Manager
+- 🔐 ECS tasks use IAM roles
+- 🌐 Public HTTP access (no SSL)
+
+**EC2 WordPress Host:**
+- 🔑 SSH key-based authentication only
+- 🔒 Security group: ports 22, 80, 443 allowed
+- 🔐 IAM instance profile for AWS Secrets Manager access
+- ⚠️ HTTP only (SSL planned for subdomains)
 
 
 ---
 
+## How It Works
+
+1. **Frontend calls Kestra REST API** with source WordPress URL
+2. **Kestra triggers SSH command** on EC2 instance
+3. **Clone script executes** on EC2:
+   - Detects best clone method (SSH/FTP/HTTP)
+   - Downloads WordPress files and database
+   - Creates new Docker container
+   - Imports database to RDS
+   - Runs wp search-replace for URL updates
+   - Generates Nginx vhost config
+   - Reloads Nginx
+4. **Returns clone URL** to frontend (e.g., client-1.toctoc.com.au)
+
+---
+
 **Last Updated:** 2026-01-14  
-**Status:** Phase 1 Complete - Infrastructure deployed and operational
+**Status:** Phase A Complete (Infrastructure) | Phase B In Progress (Cloning Engine)

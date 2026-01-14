@@ -34,18 +34,17 @@ dnf update -y
 log_info "Installing system dependencies..."
 dnf install -y \
     wget \
-    curl \
     git \
     jq \
-    httrack \
-    lftp \
-    mysql \
     unzip \
     tar \
     gzip \
     rsync \
     openssh-clients \
-    cronie
+    cronie \
+    mariadb105 || true  # Continue even if some packages fail
+
+# Curl already installed (curl-minimal)
 
 # ============================================
 # 3. Install Docker Engine

@@ -1,0 +1,36 @@
+version: '3.8'
+
+# This is a BASE configuration
+# WordPress containers are created dynamically by the cloning script
+# Only the Nginx proxy runs permanently
+
+services:
+  # Nginx Reverse Proxy (always running)
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: nginx-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:rw  # RW for dynamic config generation
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx-logs:/var/log/nginx
+    networks:
+      - wordpress-network
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  nginx-logs:
+    name: nginx-logs
+
+networks:
+  wordpress-network:
+    name: wordpress-cloning-network
+    driver: bridge

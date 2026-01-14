@@ -1,0 +1,18 @@
+# WordPress Cloning Service - Terraform Variables Example
+# Copy this file to terraform.tfvars and customize
+
+# AWS Configuration
+aws_region = "us-east-1"
+
+# EC2 Configuration
+instance_type = "t3.small" # 2GB RAM, 2 vCPU for 3 WordPress containers
+key_name      = "your-ssh-key-name" # Replace with your SSH key pair name
+
+# Security
+allowed_ssh_cidr = [
+  "0.0.0.0/0" # Restrict to your IP in production: ["1.2.3.4/32"]
+]
+
+# Environment
+environment  = "dev"
+project_name = "wordpress-cloning"

@@ -1,0 +1,44 @@
+kestra:
+  server:
+    port: ${PORT:-8080}
+    access-log:
+      enabled: true
+      format: json
+  
+  repository:
+    type: postgres
+  
+  queue:
+    type: postgres
+  
+  storage:
+    type: local
+    local:
+      base-path: /app/storage
+
+datasources:
+  postgres:
+    url: jdbc:postgresql://${KESTRA_DB_HOST}:${KESTRA_DB_PORT:5432}/${KESTRA_DB_NAME:kestra}
+    username: ${KESTRA_DB_USER:kestra}
+    password: ${KESTRA_DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    auto-commit: false
+    connection-test-query: SELECT 1
+    maximum-pool-size: 10
+    minimum-idle: 5
+
+micronaut:
+  application:
+    name: kestra
+  server:
+    port: ${PORT:-8080}
+    netty:
+      max-initial-line-length: 8192
+  
+  security:
+    enabled: false
+
+logger:
+  levels:
+    io.kestra: INFO
+    root: WARN

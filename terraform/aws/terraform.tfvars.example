@@ -1,0 +1,29 @@
+# Example Terraform Variables Configuration
+# Copy this file to terraform.tfvars and customize values
+
+# AWS Region
+aws_region = "us-east-1"
+
+# Environment name (dev, staging, prod)
+environment = "dev"
+
+# VPC CIDR block
+vpc_cidr = "10.0.0.0/16"
+
+# RDS instance class (db.t3.micro, db.t3.small, db.t3.medium)
+rds_instance_class = "db.t3.micro"
+
+# RDS allocated storage in GB
+rds_allocated_storage = 20
+
+# Enable RDS deletion protection (set to true for production)
+enable_deletion_protection = false
+
+# ECS task CPU (512 = 0.5 vCPU, 1024 = 1 vCPU)
+ecs_task_cpu = 512
+
+# ECS task memory in MB (minimum 2048 for Kestra)
+ecs_task_memory = 2048
+
+# Desired number of Kestra tasks
+kestra_desired_count = 1

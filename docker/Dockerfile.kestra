@@ -1,0 +1,29 @@
+# Custom Kestra image for AWS ECS Fargate
+FROM --platform=linux/amd64 kestra/kestra:latest
+
+USER root
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    jq \
+    postgresql-client \
+    bash \
+    && rm -rf /var/lib/apt/lists/*
+
+# Verify installations
+RUN pg_dump --version && \
+    psql --version && \
+    jq --version
+
+# Switch back to kestra user
+USER kestra
+
+# Set working directory
+WORKDIR /app
+
+# Copy AWS-specific Kestra configuration
+COPY --chown=kestra:kestra kestra/config/application-aws.yaml /app/config/application-aws.yaml
+
+# Expose Kestra ports
+EXPOSE 8080 8081

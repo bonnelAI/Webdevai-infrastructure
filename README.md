@@ -66,19 +66,20 @@ graph LR
 
 ### 📋 Phase 2: Database Sync (Planned)
 
-**Fast PostgreSQL Streaming:**
-- Sub-30-second database cloning using `pg_dump | psql`
+**Fast PostgreSQL Streaming for WordPress:**
+- Sub-30-second WordPress database cloning using `pg_dump | psql`
 - Zero disk I/O (Unix pipe streaming)
-- Support for 1GB+ databases
+- Support for 1GB+ WordPress databases
 - Automatic rollback on failure
+- Preserve WordPress URLs and site-specific configurations
 
 ### 📋 Phase 3: Workflow Automation (Planned)
 
 **Kestra Workflows:**
-- Clone staging environments
-- Database synchronization
-- Environment management (list, delete)
-- GitHub to Railway deployment
+- Clone WordPress environments with custom client domains (e.g., client-x.toctoc.com.au)
+- Database synchronization between environments
+- Environment management (list, delete, restart)
+- Automated health checks and monitoring
 
 ### 📋 Phase 4: Frontend Integration (Planned)
 
@@ -106,8 +107,8 @@ graph TB
     end
     
     subgraph "Future: Target Platforms"
-        R1[Railway<br/>Production]
-        R2[Railway<br/>Staging]
+        W1[WordPress Production<br/>client-prod.toctoc.com.au]
+        W2[WordPress Clone<br/>client-x.toctoc.com.au]
     end
     
     Internet((Internet)) -->|HTTP| ALB
@@ -119,10 +120,10 @@ graph TB
     ECS -.->|Will Execute| K2
     ECS -.->|Will Execute| K3
     
-    K1 -.->|Will Clone| R1
-    K1 -.->|Will Create| R2
-    K2 -.->|Will Sync DB| R1
-    K2 -.->|Will Sync DB| R2
+    K1 -.->|Will Clone| W1
+    K1 -.->|Will Create| W2
+    K2 -.->|Will Sync DB| W1
+    K2 -.->|Will Sync DB| W2
     
     style ALB fill:#FF9800,color:#fff
     style ECS fill:#4CAF50,color:#fff
@@ -131,8 +132,8 @@ graph TB
     style K1 fill:#E0E0E0,color:#666
     style K2 fill:#E0E0E0,color:#666
     style K3 fill:#E0E0E0,color:#666
-    style R1 fill:#E0E0E0,color:#666
-    style R2 fill:#E0E0E0,color:#666
+    style W1 fill:#E0E0E0,color:#666
+    style W2 fill:#E0E0E0,color:#666
 ```
 
 ## Tech Stack
@@ -148,10 +149,10 @@ graph TB
 - **AWS ECR** - Container registry
 
 **Planned:**
-- **Bash** - Database streaming scripts
-- **Railway CLI** - Platform automation
-- **pg_dump/psql** - Database replication
-- **jq** - JSON parsing
+- **Bash** - WordPress cloning automation scripts
+- **DNS Management** - Custom domain routing (e.g., client-x.toctoc.com.au)
+- **pg_dump/psql** - Database replication between environments
+- **jq** - JSON parsing for configuration management
 
 ## Project Structure
 
